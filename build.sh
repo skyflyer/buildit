@@ -1,1 +1,1 @@
-go build -o dist/buildit src/run/main.go
+go build -o dist/mac/buildit src/run/main.go
