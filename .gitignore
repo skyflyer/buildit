@@ -1,0 +1,9 @@
+/build
+/testing
+/buildit.yml
+
+.vscode
+.lasthead
+.builditgit/
+/dist
+/pkg
