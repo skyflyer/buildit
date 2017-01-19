@@ -1,2 +1,0 @@
-[X] detect repo change
-[ ] read `.buildit.yml` from repository root to (re)define steps
