@@ -11,6 +11,10 @@
     	watch starts the agent in a periodic watch mode. It checks every minute for changes. Period can be adjusted by using the -period flag.
 ```
 
+## Download
+
+You can download pre-built binaries for Windows, Mac and Linux from [releases page](https://github.com/skyflyer/buildit/releases).
+
 ## Configuration
 
 `buildit` is configured with a `buildit.yml` YAML configuration file. An annotated sample:
