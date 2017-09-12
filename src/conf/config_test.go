@@ -115,3 +115,69 @@ auth:
 	require.Equal(t, "u", c.Auth.Username)
 	require.Equal(t, "", c.Auth.Password)
 }
+
+func TestParseOptionalWorkDir(t *testing.T) {
+	content := []byte(`repo: yes
+branch: develop
+steps:
+- fake
+auth:
+  username: u
+  password:
+`)
+	c, e := parseYaml(content)
+
+	require.Nil(t, e)
+	require.NotNil(t, c.WorkingDirectory)
+	require.Equal(t, DefaultWorkingDirectory, c.WorkingDirectory)
+}
+
+func TestParseDefinedWorkDir(t *testing.T) {
+	content := []byte(`repo: yes
+workdir: someplace
+branch: develop
+steps:
+- fake
+auth:
+  username: u
+  password:
+`)
+	c, e := parseYaml(content)
+
+	require.Nil(t, e)
+	require.NotNil(t, c.WorkingDirectory)
+	require.Equal(t, "someplace", c.WorkingDirectory)
+}
+
+func TestParseAuthNoSSHAgent(t *testing.T) {
+	content := []byte(`repo: yes
+workdir: someplace
+branch: develop
+steps:
+- fake
+auth:
+  username: u
+  password:
+`)
+	c, e := parseYaml(content)
+
+	require.Nil(t, e)
+	require.Equal(t, false, c.Auth.UseSSHAgent)
+}
+
+func TestParseAuthSSHAgent(t *testing.T) {
+	content := []byte(`repo: yes
+workdir: someplace
+branch: develop
+steps:
+- fake
+auth:
+  username: u
+  password:
+  use_ssh_agent: true
+`)
+	c, e := parseYaml(content)
+
+	require.Nil(t, e)
+	require.Equal(t, true, c.Auth.UseSSHAgent)
+}

@@ -9,28 +9,27 @@ import (
 
 const filename = "buildit.yml"
 
-// GitDir is where git file repo is stored
-const GitDir = ".builditgit"
-
-// BuildDir is where repository is checked out
-const BuildDir = "build"
+// DefaultWorkingDirectory is where git file repo is stored
+const DefaultWorkingDirectory = "buildit-repo"
 
 // LastHeadMarker is the name of the file that stores last commit hash
 const LastHeadMarker = ".lasthead"
 
 // Conf struct
 type Conf struct {
-	Repo   string    `yaml:"repo"`
-	Auth   *AuthConf `yaml:"auth"`
-	Branch string    `yaml:"branch"`
-	Steps  []string  `yaml:"steps,flow"`
+	Repo             string    `yaml:"repo"`
+	Auth             *AuthConf `yaml:"auth"`
+	WorkingDirectory string    `yaml:"workdir"`
+	Branch           string    `yaml:"branch"`
+	Steps            []string  `yaml:"steps,flow"`
 }
 
 // AuthConf struct
 type AuthConf struct {
-	Key      string `yaml:"key"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Key         string `yaml:"key"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	UseSSHAgent bool   `yaml:"use_ssh_agent"`
 }
 
 func parseYaml(content []byte) (Conf, error) {
@@ -46,6 +45,10 @@ func parseYaml(content []byte) (Conf, error) {
 
 	if len(c.Steps) == 0 {
 		return c, errors.New("At least one step must be defined")
+	}
+
+	if len(c.WorkingDirectory) == 0 {
+		c.WorkingDirectory = DefaultWorkingDirectory
 	}
 
 	return c, nil

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 	"util"
 
@@ -30,7 +31,6 @@ out:
 			if !(*watchRepo) {
 				quit <- true
 			}
-
 			runProgram(*forceRun)
 		case <-time.After(time.Duration(*period) * time.Minute):
 			runProgram(*forceRun)
@@ -41,42 +41,67 @@ out:
 }
 
 func runProgram(runEvenWhenNoChanges bool) {
-	log.Printf("Running\r\n")
 	cfg, err := conf.ReadConfig()
 	util.Check(err)
+	log.Printf("Running. Working directory: %s\n", cfg.WorkingDirectory)
 
 	conf.ConfigureAuth(cfg.Auth)
 
-	r, err := git.NewFilesystemRepository(conf.GitDir)
-	util.Check(err)
-
-	remotes, err := r.Remotes()
-	util.Check(err)
-	if len(remotes) == 0 {
-		build.CloneRepository(r, cfg)
-	} else {
-		build.UpdateRepository(r)
-	}
-
-	lastHead := build.GetLastHead()
 	branch := "master"
-
 	if cfg.Branch != "" {
 		branch = cfg.Branch
 	}
-	// find the branch
-	head, err := r.Reference(
-		plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", branch)),
-		true)
-	if err != nil {
-		log.Fatalf("Branch %s not found: %s\r\n", cfg.Branch, err)
+	branchReference := plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branch))
+
+	var r *git.Repository
+	_, err = os.Stat(cfg.WorkingDirectory)
+	if err == nil {
+		log.Println("Repository directory already exists. Opening repo...")
+		r, err = git.PlainOpen(cfg.WorkingDirectory)
+		util.Check(err)
+		log.Println("Fetching...")
+		err = r.Fetch(&git.FetchOptions{
+			Auth:       conf.AuthMethod,
+			RemoteName: "origin",
+			Progress:   os.Stdout,
+		})
+		util.Check(err)
+	} else {
+		log.Println("Cloning repository...")
+		r, err = git.PlainClone(cfg.WorkingDirectory, false, &git.CloneOptions{
+			Auth:          conf.AuthMethod,
+			RemoteName:    "origin",
+			URL:           cfg.Repo,
+			Progress:      os.Stdout,
+			ReferenceName: branchReference,
+		})
+
+		util.Check(err)
 	}
 
+	worktree, err := r.Worktree()
+	util.Check(err)
+
+	remoteBranchReference := plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", branch))
+
+	err = worktree.Checkout(&git.CheckoutOptions{
+		Branch: remoteBranchReference,
+		Force:  true,
+	})
+	util.Check(err)
+
+	lastHead := build.GetLastHead()
+
+	// find the head
+	head, err := r.Head()
+	if err != nil {
+		log.Fatalf("Head of branch %s not found: %s\n", cfg.Branch, err)
+	}
+	log.Printf("Current repository head: %s\n", head.Hash().String())
+
 	if lastHead != head.Hash().String() || runEvenWhenNoChanges {
-		build.CleanBuildDir()
-		build.CheckoutFiles(r, head)
-		build.RunBuildSteps(cfg)
 		build.SaveLastHead(head.Hash().String())
+		build.RunBuildSteps(cfg)
 	} else {
 		log.Println("No changes")
 	}

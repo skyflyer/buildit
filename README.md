@@ -22,6 +22,8 @@ You can download pre-built binaries for Windows, Mac and Linux from [releases pa
 ```yaml
 # define the repository
 repo: git@github.com:skyflyer/buildit.git
+# optional workdir parameter, where repository is checked out
+workdir: myrepo
 # if you want to build non-master branch, define it:
 branch: develop
 # authentication info for accessing repository
@@ -51,6 +53,4 @@ The simplest way to use it is to run `buildit` in a directory where the configur
 
 ## TODO
 
-* more testing
-* support http(s) repositories
 * parse quotes in commands?

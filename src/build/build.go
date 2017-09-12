@@ -3,6 +3,7 @@ package build
 import (
 	"conf"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -17,7 +18,7 @@ func streamReader(stream io.ReadCloser, name string) {
 	for err == nil {
 		cnt, err = stream.Read(buf)
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && err != io.ErrClosedPipe && err != os.ErrClosed {
 				log.Printf("[%s] Error: %s\r\n", name, err)
 			}
 		} else {
@@ -30,7 +31,7 @@ func streamReader(stream io.ReadCloser, name string) {
 func RunBuildSteps(cfg conf.Conf) {
 	previousCWD, err := os.Getwd()
 	util.Check(err)
-	os.Chdir(conf.BuildDir)
+	os.Chdir(cfg.WorkingDirectory)
 
 	for _, step := range cfg.Steps {
 		log.Println("About to run command: ", step)
@@ -56,4 +57,27 @@ func RunBuildSteps(cfg conf.Conf) {
 	}
 
 	os.Chdir(previousCWD)
+}
+
+// GetLastHead returns hash of last head
+func GetLastHead() string {
+	contents, err := ioutil.ReadFile(conf.LastHeadMarker)
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(contents), "\n")
+	if len(lines) == 0 {
+		return ""
+	}
+	return lines[0]
+}
+
+// SaveLastHead saves last head hash
+func SaveLastHead(hash string) {
+	f, err := os.OpenFile(conf.LastHeadMarker, os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		log.Fatal("Could not save last status!")
+	}
+	f.WriteString(hash)
+	f.Close()
 }
